@@ -2,11 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+@layer base {
+  html {
+    direction: rtl;
+    font-family: 'Rubik', sans-serif;
+  }
+
+  body {
+    @apply bg-desert-bg text-desert-brown;
+    min-height: 100dvh;
     padding: 0;
-    /* background-color: black;
-    background-image: url('/background.jpg');
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat; */
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Better focus indicators for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-hoopoe;
+  }
+
+  /* Remove tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* Reusable card style */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm p-4;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply px-4 py-3 bg-hoopoe text-white font-bold rounded-xl
+           disabled:opacity-40 transition-all active:scale-[0.98];
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-4 py-2 bg-desert-brown/10 text-desert-brown font-bold rounded-xl
+           transition-all active:scale-[0.98];
+  }
+
+  /* Skeleton loading placeholder */
+  .skeleton {
+    @apply bg-desert-brown/5 rounded-2xl animate-pulse;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm;
+  }
+
+  /* Hide scrollbar but keep scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
