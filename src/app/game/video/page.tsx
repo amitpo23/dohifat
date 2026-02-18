@@ -62,8 +62,9 @@ export default function VideoPage() {
       setVideoUrl(url)
       setSaved(false)
       toast.success('!הסרטון נוצר בהצלחה 🎬')
-    } catch {
-      toast.error('שגיאה ביצירת הסרטון')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'שגיאה ביצירת הסרטון'
+      toast.error(msg)
     } finally {
       setLoading(false)
     }

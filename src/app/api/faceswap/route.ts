@@ -21,6 +21,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ resultUrl: output })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Face swap failed'
+    if (message.includes('402') || message.includes('Payment Required') || message.includes('billing')) {
+      return NextResponse.json({ error: 'שירות החלפת הפנים אינו זמין כרגע (נדרש קרדיט ב-Replicate)' }, { status: 402 })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

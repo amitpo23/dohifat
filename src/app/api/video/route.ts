@@ -30,6 +30,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ videoUrl })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Video generation failed'
+    // Replicate returns 402 when account has no credit
+    if (message.includes('402') || message.includes('Payment Required') || message.includes('billing')) {
+      return NextResponse.json({ error: 'שירות יצירת הסרטונים אינו זמין כרגע (נדרש קרדיט ב-Replicate)' }, { status: 402 })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

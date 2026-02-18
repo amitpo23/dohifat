@@ -67,8 +67,9 @@ export default function FaceSwapPage() {
 
       setResultUrl(result)
       toast.success('!החלפת הפנים הצליחה 🎭')
-    } catch {
-      toast.error('שגיאה בהחלפת הפנים, נסו שוב')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'שגיאה בהחלפת הפנים'
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
