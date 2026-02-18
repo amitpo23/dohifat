@@ -85,6 +85,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ videoUrl })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Video generation failed'
+    if (message.includes('balance') || message.includes('1102')) {
+      return NextResponse.json({ error: 'אין מספיק קרדיט בחשבון KLING - יש להוסיף קרדיט באתר klingai.com' }, { status: 402 })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
