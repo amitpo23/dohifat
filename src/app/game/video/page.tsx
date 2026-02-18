@@ -21,6 +21,8 @@ export default function VideoPage() {
   const [prompt, setPrompt] = useState('')
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -58,6 +60,7 @@ export default function VideoPage() {
       if (error) throw new Error(error)
 
       setVideoUrl(url)
+      setSaved(false)
       toast.success('!הסרטון נוצר בהצלחה 🎬')
     } catch {
       toast.error('שגיאה ביצירת הסרטון')
@@ -164,16 +167,48 @@ export default function VideoPage() {
             playsInline
             className="w-full rounded-2xl shadow-lg"
           />
-          <a
-            href={videoUrl}
-            download="duchifat-video.mp4"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block mt-3 text-center py-2 bg-desert-brown/10 text-desert-brown
-                       font-bold rounded-xl text-sm"
-          >
-            📥 הורד סרטון
-          </a>
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              disabled={saving || saved || !player || !team}
+              onClick={async () => {
+                if (!player || !team) return
+                setSaving(true)
+                try {
+                  const res = await fetch(videoUrl)
+                  const blob = await res.blob()
+                  const formData = new FormData()
+                  formData.append('file', new File([blob], 'ai-video.mp4', { type: 'video/mp4' }))
+                  formData.append('playerId', player.id)
+                  formData.append('teamId', String(team.id))
+                  const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+                  if (!uploadRes.ok) throw new Error('Save failed')
+                  setSaved(true)
+                  toast.success('!נשמר בגלריה 🎬')
+                } catch {
+                  toast.error('שגיאה בשמירה לגלריה')
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              className={`flex-1 py-2 font-bold rounded-xl text-sm transition-all ${
+                saved
+                  ? 'bg-accent-teal/10 text-accent-teal'
+                  : 'bg-hoopoe text-white disabled:opacity-40'
+              }`}
+            >
+              {saved ? '✓ נשמר בגלריה' : saving ? '...שומר' : '📸 שמרו בגלריה'}
+            </button>
+            <a
+              href={videoUrl}
+              download="duchifat-video.mp4"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-desert-brown/10 text-desert-brown font-bold rounded-xl text-sm"
+            >
+              📥 הורד
+            </a>
+          </div>
         </motion.div>
       )}
     </div>

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/browser'
 import { vibrateLight } from '@/lib/haptics'
 import { playClick } from '@/lib/sounds'
 import { resizeImage } from '@/lib/image-utils'
+import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { InfoBanner } from '@/components/InfoBanner'
 
@@ -137,6 +138,7 @@ export default function ChatPage() {
       .upload(path, resized, { contentType: 'image/jpeg' })
 
     if (error) {
+      toast.error(`שגיאה בהעלאת תמונה: ${error.message}`)
       setUploading(false)
       return
     }

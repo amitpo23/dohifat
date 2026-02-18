@@ -154,11 +154,15 @@ export default function GalleryPage() {
         body: formData,
       })
 
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(body.error || 'Upload failed')
+      }
 
       toast.success('!התמונה עלתה בהצלחה 📸')
-    } catch {
-      toast.error('שגיאה בהעלאת התמונה')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'שגיאה בהעלאת התמונה'
+      toast.error(msg)
     } finally {
       setUploading(false)
       if (fileInputRef.current) {

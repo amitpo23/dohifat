@@ -22,6 +22,8 @@ export default function ImaginePage() {
   const [sourcePreview, setSourcePreview] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -72,6 +74,7 @@ export default function ImaginePage() {
       if (error) throw new Error(error)
 
       setImageUrl(url)
+      setSaved(false)
       toast.success('!התמונה נוצרה בהצלחה 🎨')
     } catch {
       toast.error('שגיאה ביצירת התמונה')
@@ -180,6 +183,48 @@ export default function ImaginePage() {
             alt={prompt}
             className="w-full rounded-2xl shadow-lg"
           />
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              disabled={saving || saved || !player || !team}
+              onClick={async () => {
+                if (!player || !team) return
+                setSaving(true)
+                try {
+                  const res = await fetch(imageUrl)
+                  const blob = await res.blob()
+                  const formData = new FormData()
+                  formData.append('file', blob, 'ai-image.jpg')
+                  formData.append('playerId', player.id)
+                  formData.append('teamId', String(team.id))
+                  const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+                  if (!uploadRes.ok) throw new Error('Save failed')
+                  setSaved(true)
+                  toast.success('!נשמר בגלריה 📸')
+                } catch {
+                  toast.error('שגיאה בשמירה לגלריה')
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              className={`flex-1 py-2 font-bold rounded-xl text-sm transition-all ${
+                saved
+                  ? 'bg-accent-teal/10 text-accent-teal'
+                  : 'bg-hoopoe text-white disabled:opacity-40'
+              }`}
+            >
+              {saved ? '✓ נשמר בגלריה' : saving ? '...שומר' : '📸 שמרו בגלריה'}
+            </button>
+            <a
+              href={imageUrl}
+              download="duchifat-ai.webp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-desert-brown/10 text-desert-brown font-bold rounded-xl text-sm"
+            >
+              📥 הורד
+            </a>
+          </div>
         </motion.div>
       )}
     </div>
