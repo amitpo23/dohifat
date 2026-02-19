@@ -24,6 +24,8 @@ export default function StyleTransferPage() {
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,16 +181,30 @@ export default function StyleTransferPage() {
             <h2 className="font-bold text-desert-brown mb-3">🎉 התוצאה:</h2>
             <img src={resultUrl} alt="styled" className="w-full rounded-xl mb-3" />
             <div className="flex gap-2">
-              <a
-                href={resultUrl}
-                download="styled-photo.png"
-                target="_blank"
-                className="flex-1 py-2 bg-hoopoe text-white text-center font-bold rounded-xl text-sm"
-              >
-                💾 שמירה
-              </a>
               <button
-                onClick={() => { setResultUrl(null); setSelectedStyle(null) }}
+                onClick={async () => {
+                  if (!player || saving || saved) return
+                  setSaving(true)
+                  try {
+                    const res = await fetch(resultUrl!)
+                    const blob = await res.blob()
+                    const formData = new FormData()
+                    formData.append('file', blob, 'styled-photo.jpg')
+                    formData.append('playerId', player.id)
+                    formData.append('teamId', '0')
+                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+                    if (!uploadRes.ok) throw new Error('Save failed')
+                    setSaved(true)
+                  } catch { setError('שגיאה בשמירה') }
+                  finally { setSaving(false) }
+                }}
+                disabled={saving || saved}
+                className={`flex-1 py-2 text-center font-bold rounded-xl text-sm ${saved ? 'bg-green-500 text-white' : 'bg-hoopoe text-white'}`}
+              >
+                {saved ? '✅ נשמר בגלריה!' : saving ? '⏳ שומר...' : '💾 שמירה לגלריה'}
+              </button>
+              <button
+                onClick={() => { setResultUrl(null); setSelectedStyle(null); setSaved(false) }}
                 className="flex-1 py-2 bg-gray-100 text-desert-brown text-center font-bold rounded-xl text-sm"
               >
                 🔄 נסו סגנון אחר
