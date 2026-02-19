@@ -53,6 +53,27 @@ const AI_ACTIVITIES = [
     description: 'שימו את הפנים שלכם על דמויות מפורסמות!',
     color: '#D4663C',
   },
+  {
+    href: '/game/style',
+    name: 'העברת סגנון',
+    icon: '🖼️',
+    description: 'הפכו תמונה ליצירת אמנות!',
+    color: '#2D8E5D',
+  },
+  {
+    href: '/game/background',
+    name: 'החלפת רקע',
+    icon: '🏝️',
+    description: 'החליפו רקע לתמונה שלכם!',
+    color: '#2D5DA1',
+  },
+  {
+    href: '/game/photobooth',
+    name: 'פוטובוט',
+    icon: '📸',
+    description: 'אפקטים מטורפים לסלפי!',
+    color: '#D4943C',
+  },
 ]
 
 export default function GamesPage() {
