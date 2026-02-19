@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { usePlayer } from '@/hooks/usePlayer'
 import { createClient } from '@/lib/supabase/browser'
 import type { TriviaQuestion } from '@/lib/types'
