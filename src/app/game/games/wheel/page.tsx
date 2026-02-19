@@ -109,11 +109,11 @@ export default function WheelGame() {
 
       {/* Wheel */}
       <div className="relative w-72 h-72 mb-8">
-        <motion.div
+        <div
           className="w-full h-full rounded-full overflow-hidden relative"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : undefined,
+            transition: rotation > 0 ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
           }}
         >
           {/* SVG Wheel */}
@@ -153,7 +153,7 @@ export default function WheelGame() {
             })}
             <title>גלגל המזל</title>
           </svg>
-        </motion.div>
+        </div>
       </div>
 
       {result !== null ? (
