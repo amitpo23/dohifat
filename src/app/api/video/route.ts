@@ -17,7 +17,9 @@ export async function POST(req: Request) {
 
     const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN })
 
-    const output = await replicate.run('kwaivgi/kling-v1.6-standard', {
+    // Use predictions API instead of run() - run() returns empty object for this model
+    const prediction = await replicate.predictions.create({
+      model: 'kwaivgi/kling-v1.6-standard',
       input: {
         prompt: prompt || 'animate this image',
         image: imageUrl,
@@ -25,7 +27,19 @@ export async function POST(req: Request) {
       },
     })
 
-    const videoUrl = typeof output === 'string' ? output : (Array.isArray(output) ? output[0] : output)
+    const result = await replicate.wait(prediction)
+
+    if (result.status === 'failed') {
+      throw new Error(String(result.error) || 'Video generation failed')
+    }
+
+    const videoUrl = typeof result.output === 'string'
+      ? result.output
+      : Array.isArray(result.output) ? result.output[0] : null
+
+    if (!videoUrl) {
+      throw new Error('No video URL in response')
+    }
 
     return NextResponse.json({ videoUrl })
   } catch (error) {
