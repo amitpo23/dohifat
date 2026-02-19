@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
 import { usePlayer } from '@/hooks/usePlayer'
 import { createClient } from '@/lib/supabase/browser'
 import type { TriviaQuestion } from '@/lib/types'
@@ -81,7 +80,9 @@ export default function TriviaPage() {
         const next = prev - 100
         if (next <= 0) {
           clearInterval(interval)
-          handleTimeout()
+          // Inline timeout handling to avoid stale closure
+          setShowResult(true)
+          toast.error('!נגמר הזמן ⏰')
           return 0
         }
         if (next <= 5000 && next % 1000 === 0) {
@@ -93,13 +94,8 @@ export default function TriviaPage() {
     }, 100)
 
     return () => clearInterval(interval)
-  }, [currentIndex, showResult, questions.length])
-
-  const handleTimeout = useCallback(() => {
-    if (selectedAnswer !== null) return
-    setShowResult(true)
-    toast.error('!נגמר הזמן ⏰')
-  }, [selectedAnswer])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, showResult, questions.length, answeredIds])
 
   const handleAnswer = async (choiceIndex: number) => {
     if (selectedAnswer !== null || !player || !team || showResult) return
@@ -159,17 +155,20 @@ export default function TriviaPage() {
   }
 
   const goNext = () => {
+    // Find next unanswered using latest answeredIds via callback
+    setAnsweredIds((currentAnswered) => {
+      let next = currentIndex + 1
+      while (next < questions.length && currentAnswered.has(questions[next].id)) {
+        next++
+      }
+      if (next < questions.length) {
+        setCurrentIndex(next)
+      }
+      return currentAnswered // don't change answeredIds
+    })
+
     setSelectedAnswer(null)
     setShowResult(false)
-
-    // Find next unanswered
-    let next = currentIndex + 1
-    while (next < questions.length && answeredIds.has(questions[next].id)) {
-      next++
-    }
-    if (next < questions.length) {
-      setCurrentIndex(next)
-    }
   }
 
   if (loading) {
