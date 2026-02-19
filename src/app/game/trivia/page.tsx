@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePlayer } from '@/hooks/usePlayer'
 import { createClient } from '@/lib/supabase/browser'
 import type { TriviaQuestion } from '@/lib/types'
 import { toast } from 'sonner'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { playCorrect, playWrong, playTick } from '@/lib/sounds'
 import { vibrateSuccess, vibrateError, vibrateLight } from '@/lib/haptics'
 import { InfoBanner } from '@/components/InfoBanner'
@@ -23,6 +23,13 @@ export default function TriviaPage() {
   const [timeLeft, setTimeLeft] = useState(ANSWER_TIME)
   const [questionStartTime, setQuestionStartTime] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [transitioning, setTransitioning] = useState(false)
+
+  // Refs to avoid stale closures
+  const answeredIdsRef = useRef(answeredIds)
+  answeredIdsRef.current = answeredIds
+  const selectedAnswerRef = useRef(selectedAnswer)
+  selectedAnswerRef.current = selectedAnswer
 
   // Load questions from DB + previously answered
   useEffect(() => {
@@ -54,6 +61,7 @@ export default function TriviaPage() {
           }
         }
         setAnsweredIds(answered)
+        answeredIdsRef.current = answered
 
         // Find first unanswered question
         const firstUnanswered = qs.findIndex((q) => !answered.has(q.id))
@@ -69,9 +77,9 @@ export default function TriviaPage() {
 
   // Timer
   useEffect(() => {
-    if (showResult || questions.length === 0) return
+    if (showResult || transitioning || questions.length === 0) return
     const question = questions[currentIndex]
-    if (!question || answeredIds.has(question.id)) return
+    if (!question || answeredIdsRef.current.has(question.id)) return
 
     setTimeLeft(ANSWER_TIME)
     setQuestionStartTime(Date.now())
@@ -81,9 +89,10 @@ export default function TriviaPage() {
         const next = prev - 100
         if (next <= 0) {
           clearInterval(interval)
-          // Inline timeout handling to avoid stale closure
-          setShowResult(true)
-          toast.error('!נגמר הזמן ⏰')
+          if (selectedAnswerRef.current === null) {
+            setShowResult(true)
+            toast.error('!נגמר הזמן ⏰')
+          }
           return 0
         }
         if (next <= 5000 && next % 1000 === 0) {
@@ -96,7 +105,7 @@ export default function TriviaPage() {
 
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, showResult, questions.length, answeredIds])
+  }, [currentIndex, showResult, transitioning, questions.length])
 
   const handleAnswer = async (choiceIndex: number) => {
     if (selectedAnswer !== null || !player || !team || showResult) return
@@ -125,6 +134,11 @@ export default function TriviaPage() {
       vibrateError()
     }
 
+    // Update answered set immediately
+    const newAnswered = new Set([...answeredIds, question.id])
+    setAnsweredIds(newAnswered)
+    answeredIdsRef.current = newAnswered
+
     // Save answer
     const supabase = createClient()
     await supabase.from('trivia_answers').insert({
@@ -151,25 +165,35 @@ export default function TriviaPage() {
     } else {
       toast.error('לא נכון... 😅')
     }
-
-    setAnsweredIds((prev) => new Set([...prev, question.id]))
   }
 
   const goNext = () => {
-    // Find next unanswered using latest answeredIds via callback
-    setAnsweredIds((currentAnswered) => {
-      let next = currentIndex + 1
-      while (next < questions.length && currentAnswered.has(questions[next].id)) {
-        next++
-      }
-      if (next < questions.length) {
-        setCurrentIndex(next)
-      }
-      return currentAnswered // don't change answeredIds
-    })
+    // Use ref for latest answeredIds (avoids stale closure)
+    const currentAnswered = answeredIdsRef.current
 
-    setSelectedAnswer(null)
+    // Find next unanswered
+    let next = currentIndex + 1
+    while (next < questions.length && currentAnswered.has(questions[next].id)) {
+      next++
+    }
+
+    if (next >= questions.length) {
+      // All done - re-render will show completion screen
+      setShowResult(false)
+      setSelectedAnswer(null)
+      return
+    }
+
+    // Transition: hide current, then show next
+    setTransitioning(true)
     setShowResult(false)
+    setSelectedAnswer(null)
+
+    // Small delay to let React clear the old state before showing new question
+    setTimeout(() => {
+      setCurrentIndex(next)
+      setTransitioning(false)
+    }, 150)
   }
 
   if (loading) {
@@ -190,7 +214,7 @@ export default function TriviaPage() {
     )
   }
 
-  const allAnswered = questions.every((q) => answeredIds.has(q.id))
+  const allAnswered = questions.every((q) => answeredIdsRef.current.has(q.id))
 
   if (allAnswered) {
     return (
@@ -203,6 +227,8 @@ export default function TriviaPage() {
   }
 
   const question = questions[currentIndex]
+  if (!question) return null
+
   const timerPercent = (timeLeft / ANSWER_TIME) * 100
   const answerColors = ['#D4663C', '#1B998B', '#C73E4A', '#7B2D8E']
 
@@ -239,24 +265,23 @@ export default function TriviaPage() {
         </span>
       </div>
 
-      {/* Question */}
-      <AnimatePresence mode="wait">
+      {/* Question + Choices */}
+      {!transitioning && (
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.2 }}
         >
           <h2 className="text-lg font-bold text-desert-brown mb-6 leading-relaxed">
             {question.question}
           </h2>
 
-          {/* Choices */}
           <div className="grid grid-cols-1 gap-3">
             {question.options.map((option, i) => {
               const isSelected = selectedAnswer === i
               const isCorrect = i === question.correct_index
-              let bg = answerColors[i]
+              let bg = answerColors[i % answerColors.length]
               let opacity = '1'
 
               if (showResult) {
@@ -274,12 +299,9 @@ export default function TriviaPage() {
                   key={i}
                   type="button"
                   onClick={() => handleAnswer(i)}
-                  disabled={showResult}
+                  disabled={showResult || transitioning}
                   className="p-4 rounded-2xl text-white font-bold text-right transition-all active:scale-[0.97]"
-                  style={{
-                    backgroundColor: bg,
-                    opacity,
-                  }}
+                  style={{ backgroundColor: bg, opacity }}
                 >
                   {option}
                 </button>
@@ -287,10 +309,17 @@ export default function TriviaPage() {
             })}
           </div>
         </motion.div>
-      </AnimatePresence>
+      )}
+
+      {/* Transition loading */}
+      {transitioning && (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-2xl animate-pulse">🧠</div>
+        </div>
+      )}
 
       {/* Next button */}
-      {showResult && (
+      {showResult && !transitioning && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -299,7 +328,7 @@ export default function TriviaPage() {
           <button
             type="button"
             onClick={goNext}
-            className="w-full py-3 bg-desert-brown text-white font-bold rounded-2xl"
+            className="w-full py-3 bg-desert-brown text-white font-bold rounded-2xl active:scale-[0.98] transition-transform"
           >
             שאלה הבאה ←
           </button>
