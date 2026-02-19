@@ -79,7 +79,6 @@ export async function POST(req: Request) {
       player_id: playerId,
       team_id: parsedTeamId,
       image_url: publicUrl,
-      media_type: isVideo ? 'video' : 'image',
       segment: segment ? Number.parseInt(segment, 10) : null,
     })
     .select()
